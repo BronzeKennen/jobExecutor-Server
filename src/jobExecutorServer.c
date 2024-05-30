@@ -12,6 +12,6 @@ void error(const char *msg) {
 
 
 int main(int argc, char** argv) { 
-    printf("Server Initializing...\n");
+    printf("Server Initializing..\n");
     return 0;
 }
