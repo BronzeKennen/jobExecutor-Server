@@ -32,11 +32,11 @@ int main(int argc, char** argv) {
     char* command = malloc(cmdSize+1); //parse Command
 
     if(strncmp(argv[3],"setConcurrency",14) == 0) {
-        int con = atoi(argv[4]);
-        if(con > 16) {
+        if(strlen(argv[4]) > 8) {
             printf("Invalid concurrency\n");
             exit(1);
         }
+        int con = atoi(argv[4]);
         char buf[20];
         sprintf(buf,"setConcurrency %d",con);
         strncpy(command,buf,20);
@@ -61,8 +61,12 @@ int main(int argc, char** argv) {
         strcpy(command,buf);
 
     } else if (strncmp(argv[3],"exit",4) == 0) {
-        strcpy(command,"exit\0"); //prints some random character at the end in the exit function specifically
+        strcpy(command,"exit"); //prints some random character at the end in the exit function specifically
+        command[4] = '\0';
 
+    } else if(strncmp(argv[3],"poll",4) == 0) {
+        strcpy(command,"poll");
+        command[4] = '\0';
     } else {
         printf("Invalid command");
         exit(1);
