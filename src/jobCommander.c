@@ -148,12 +148,19 @@ int main(int argc, char** argv) {
             memcpy(buffer,command,cmdSize);
             printf("Sending: %s\n",command);
             n = write(sockFd,buffer,cmdSize);
-            memset(buffer,0,cmdSize);
-            n = read(sockFd, buffer,cmdSize);
+            char resp[
+                        strlen("job")
+                        +strlen("submitted")
+                        +cmdSize
+                        +strlen("job_")
+                        +5 //I have to change that according to jobId
+                    ];
+            memset(resp,0,sizeof(resp));
+            n = read(sockFd, resp,sizeof(resp));
             if(n < 0 ) {
                 error("error on reading");
             }
-            // printf("Response : %s \n",buffer);
+            printf("Response : %s \n",resp);
         }
     }
     close(sockFd);

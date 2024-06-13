@@ -73,6 +73,33 @@ int main(int argc, char** argv) {
         .not_full = PTHREAD_COND_INITIALIZER,
         .not_empty = PTHREAD_COND_INITIALIZER
     };
+// 
+    // job* job1 = malloc(sizeof(job)); //will add to a test file later
+    // job1->id = 1;
+    // job1->socketFd = 1;
+    // job1->job = malloc(10);
+    // strcpy(job1->job,"123456789\0");
+    // job* job2 = malloc(sizeof(job));
+    // job2->id = 2;
+    // job2->socketFd = 2;
+    // job2->job = malloc(10);
+    // strcpy(job2->job,"987654321\0");
+    // job* job3 = malloc(sizeof(job));
+    // job3->id = 3;
+    // job3->socketFd = 3;
+    // job3->job = malloc(10);
+    // strcpy(job3->job,"abcdefghij\0");
+    // bufferAdd(&request_buffer,job1,bufSize);
+    // bufferAdd(&request_buffer,job2,bufSize);
+    // bufferAdd(&request_buffer,job3,bufSize);
+    // bufferPrint(&request_buffer);
+    // job* jobR1 = bufferRemove(&request_buffer,bufSize);
+    // printf("Job that got removed : < %d, %d, %s >\n",jobR1->id,jobR1->socketFd,jobR1->job);
+    // for(int i = 1; i <= request_buffer.count; i++) { //temp
+    //     job* job = request_buffer.buffer[i];
+    //     printf("< %d, %d, %s >\n",job->id,job->socketFd,job->job);
+
+    // }
 
     struct sockaddr_in serverAddr,clientAddr;
     socklen_t clientLen;

@@ -3,8 +3,11 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include "../include/controller.h"
 #include <string.h>
+#include "../include/controller.h"
+#include "../include/buffer.h"
+
+int id = 0;
 
 void* controller(void* arg) {
     int newSockFd = *(int*)arg;
@@ -62,6 +65,25 @@ void* controller(void* arg) {
                 exit(1);
             }
             printf("Client : %s\n",newBuf);
+            job *jobTriplet = malloc(sizeof(job));
+            jobTriplet->id = id++;
+            jobTriplet->socketFd = newSockFd;
+            jobTriplet->job = malloc(strlen(newBuf));
+            strcpy(jobTriplet->job,newBuf);
+            printf("Created job : <%d,%d,%s>\n",jobTriplet->socketFd,jobTriplet->id,jobTriplet->job);
+            //Logic to add to buffer
+            memset(buffer,0,size+1);
+            char resp[
+                        strlen("job")
+                        +strlen("submitted")
+                        +strlen(jobTriplet->job)
+                        +strlen("job_")
+                        +2 //I have to change that according to jobId
+                    ];
+            sprintf(resp,"JOB <job_%d,%s> SUBMITTED\n",jobTriplet->id,jobTriplet->job);
+                
+            memcpy(buffer,resp,strlen(resp));
+            write(newSockFd,buffer,strlen(resp));
 
         } else if(strncmp(buffer,"stop",4) == 0) {
 
@@ -72,7 +94,7 @@ void* controller(void* arg) {
         } else if(strncmp(buffer,"exit",4) == 0) {
 
         }
-        printf("Client : %s\n",buffer);
+        printf("Client : %s\n",buffer); //Garbage values if issueJob is used
         memset(buffer,0,256);
         strcpy(buffer,"ACK\n");
         write(newSockFd,buffer,3);
