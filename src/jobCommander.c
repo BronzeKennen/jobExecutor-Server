@@ -22,14 +22,16 @@ int main(int argc, char** argv) {
         fprintf(stderr,"Usage: ./jobCommander [serverName] [portNum] [jobCommanderInputCommand]\n");
         exit(1);
     }
-    int portNum,sockFd,status;
+    int handshake,portNum,sockFd,status;
     struct addrinfo hints, *res, *p;
     int cmdSize = 0; //Needed to allocate for string and send size to server
     for(int i = 3; i < argc; i++) {
         cmdSize += strlen(argv[i]);
+        cmdSize++;
     }
 
-    char* command = malloc(cmdSize+1); //parse Command
+    char command[cmdSize+1];
+    memset(command,0,cmdSize+1);
 
     if(strncmp(argv[3],"setConcurrency",14) == 0) {
         if(strlen(argv[4]) > 8) {
@@ -37,11 +39,12 @@ int main(int argc, char** argv) {
             exit(1);
         }
         int con = atoi(argv[4]);
-        char buf[20];
-        sprintf(buf,"setConcurrency %d",con);
-        strncpy(command,buf,20);
+        char buf[cmdSize];
+        snprintf(buf,cmdSize,"setConcurrency %d",con);
+        strncpy(command,buf,cmdSize);
 
     } else if (strncmp(argv[3],"issueJob",8) == 0) {
+        handshake = 1; //Send size first, get ACK, send actual data
         int cur = 0;
         for(int i = 3; i < argc; i++) { //and all of its arguments...
             strcpy(command+cur,argv[i]);
@@ -49,6 +52,7 @@ int main(int argc, char** argv) {
             command[cur++] = ' ';
             cmdSize+=1;
         }
+
         command[cur-1] = '\0';
 
     } else if (strncmp(argv[3],"stop",4) == 0)  {
@@ -56,9 +60,9 @@ int main(int argc, char** argv) {
             fprintf(stderr,"Invalid jobId.\n");
             exit(1);
         }
-        char buf[20];
-        snprintf(buf,20,"stop %s",argv[4]);
-        strcpy(command,buf);
+        char buf[cmdSize];
+        snprintf(buf,cmdSize,"stop %s",argv[4]);
+        strncpy(command,buf,cmdSize);
 
     } else if (strncmp(argv[3],"exit",4) == 0) {
         strcpy(command,"exit"); //prints some random character at the end in the exit function specifically
@@ -105,21 +109,53 @@ int main(int argc, char** argv) {
         exit(1);
     }
     
-    char buffer[cmdSize];
-    memset(buffer,0,cmdSize);
-    memcpy(buffer,command,cmdSize);
-    printf("command : %s\n",command);
-    printf("command size : %d\n",cmdSize);
-    int n = write(sockFd,buffer,cmdSize);
+    char buffer[cmdSize+1];
+    memset(buffer,0,cmdSize+1);
+    memcpy(buffer,command,cmdSize+1); 
+
+    int n = write(sockFd,buffer,cmdSize); //Send command
+    printf("Sending: %s\n",buffer);
     if(n < 0) {
         error("Error on write");
     }
+
     memset(buffer,0,cmdSize);
-    n = read(sockFd, buffer,cmdSize);
+    n = read(sockFd,buffer,cmdSize);
     if(n < 0 ) {
         error("error on reading");
     }
-    printf("RESPONSE : %s \n",buffer);
+    printf("Response : %s\n",buffer);
+    // }
+    if(handshake) {
+        char sizeBuf[10];
+        sprintf(sizeBuf,"%d",cmdSize);
+        memcpy(buffer,sizeBuf,cmdSize);
+        printf("Sending: %s\n",sizeBuf);
+        n = write(sockFd,buffer,cmdSize);
+        if(n < 0) {
+            error("Error on write");
+        }
+        memset(buffer,0,cmdSize);
+        n = read(sockFd, buffer,cmdSize);
+        if(n < 0 ) {
+            error("error on reading");
+        }
+        printf("Response : %s\n",buffer);
+        int comp = atoi(buffer);
+
+        if(comp == cmdSize) { //We are good to go
+            memset(buffer,0,cmdSize);
+            memcpy(buffer,command,cmdSize);
+            printf("Sending: %s\n",command);
+            n = write(sockFd,buffer,cmdSize);
+            memset(buffer,0,cmdSize);
+            n = read(sockFd, buffer,cmdSize);
+            if(n < 0 ) {
+                error("error on reading");
+            }
+            // printf("Response : %s \n",buffer);
+        }
+    }
     close(sockFd);
     return 0;
 }

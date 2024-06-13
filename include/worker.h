@@ -1,1 +1,1 @@
-void worker();
+void* worker(void*);

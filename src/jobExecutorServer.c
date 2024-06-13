@@ -45,46 +45,23 @@ void error(const char *msg) {
     exit(1);
 }
 
-void handleClient(int newSockFd) {
-    char buffer[256];
-    printf("client connected\n");
-    while(1) { //implement logic to handle commands
-        //implement reading size dynamically
-        /*
-        Commands:
-            issueJob [command (arguments)]
-            setConcurrency [num]
-            stop [jobId]
-            poll
-            exit
-        */
-        int n = read(newSockFd, buffer, 256);
-        if(n < 0) {
-            error("Error on read");
-        } else if (n == 0) {
-            printf("Client disconnected\n");
-            close(newSockFd);
-            exit(0);
-        }
-        printf("Client: %s\n",buffer);
-        memset(buffer,0,256);
-        strcpy(buffer,"ACK\n");
-        write(newSockFd,buffer,3);
-    }
-}
 
 int main(int argc, char** argv) { 
     if(argc < 4) {
         fprintf(stderr,"Usage: ./jobExecutorServer [portNum] [bufferSize] [threadPoolSize]\n");
     }
-    int sockFd,newSockFd,portNum;
+    int sockFd,newSockFd,portNum,bufSize,activeControllers;//activeWorkers;
     // int threadNum = atoi(argv[3]);
 
     // pthread_t workerThreads[threadNum]; //Concurrency basically
     // int workerThreadIds[threadNum];
 
-    int bufSize = atoi(argv[2]);
+    activeControllers = 0;
+    // activeWorkers = 0;
 
+    bufSize = atoi(argv[2]);
+
+    pthread_t controllerThreads[bufSize];
     // char* buffer[bufSize]; 
 
     shared_buffer_t request_buffer = {
@@ -96,11 +73,6 @@ int main(int argc, char** argv) {
         .not_full = PTHREAD_COND_INITIALIZER,
         .not_empty = PTHREAD_COND_INITIALIZER
     };
-
-    controller();
-    worker();
-    bufferAdd(&request_buffer,"gyatt");
-    bufferRemove(&request_buffer);
 
     struct sockaddr_in serverAddr,clientAddr;
     socklen_t clientLen;
@@ -136,13 +108,14 @@ int main(int argc, char** argv) {
             exit(1);
         } 
         
-        if(fork() == 0) {
-            close(sockFd);
-            handleClient(newSockFd);
-        } else {
-            close(newSockFd);
-            wait(NULL);
-        }
+        if(pthread_create( //Create a controller thread
+            &controllerThreads[activeControllers],
+            NULL,
+            controller,
+            (void*)&newSockFd
+        ) != 0) {
+            error("Could not create controller thread");
+        } 
     }
     close(newSockFd);
     close(sockFd);

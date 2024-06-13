@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "../include/worker.h"
 
-void worker() {
+void* worker(void * arg) {
     printf("Fuck that we can go rizz for rizz\n");
+    return NULL;
 }
