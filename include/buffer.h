@@ -16,4 +16,5 @@ typedef struct { //Warning, trying to assign elements that do not exist causes S
 
 void bufferAdd(shared_buffer_t*,job*,int);
 job* bufferRemove(shared_buffer_t*,int);
-void bufferPrint(shared_buffer_t* buf);
+void bufferPrint(shared_buffer_t* buf,int);
+job* bufferRemoveOnFind(shared_buffer_t*,job*,int);

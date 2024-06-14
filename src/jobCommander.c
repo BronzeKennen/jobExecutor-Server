@@ -119,14 +119,15 @@ int main(int argc, char** argv) {
         error("Error on write");
     }
 
-    memset(buffer,0,cmdSize);
-    n = read(sockFd,buffer,cmdSize);
+    char respBuf[128]; //I know responses are fixed size so static buffer is okay
+    memset(respBuf,0,128);
+    n = read(sockFd,respBuf,128);
     if(n < 0 ) {
         error("error on reading");
     }
-    printf("Response : %s\n",buffer);
-    // }
-    if(handshake) {
+    printf("Response : %s\n",respBuf);
+    //if issuejob is the command an exchange of dynamic size has to happen
+    if(handshake) { 
         char sizeBuf[10];
         sprintf(sizeBuf,"%d",cmdSize);
         memcpy(buffer,sizeBuf,cmdSize);

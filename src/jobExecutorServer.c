@@ -38,19 +38,30 @@ Worker thread:
 
 Synchronization:
 */
-int concurrency = 1;
+extern int concurrency;
 
 void error(const char *msg) {
     perror(msg);
     exit(1);
 }
 
+shared_buffer_t request_buffer = {
+        .buffer = NULL,
+        .in = 0,
+        .out = 0,
+        .count = 0,
+        .mutex = PTHREAD_MUTEX_INITIALIZER,
+        .not_full = PTHREAD_COND_INITIALIZER,
+        .not_empty = PTHREAD_COND_INITIALIZER
+    };
+
+int bufSize;
 
 int main(int argc, char** argv) { 
     if(argc < 4) {
         fprintf(stderr,"Usage: ./jobExecutorServer [portNum] [bufferSize] [threadPoolSize]\n");
     }
-    int sockFd,newSockFd,portNum,bufSize,activeControllers;//activeWorkers;
+    int sockFd,newSockFd,portNum,activeControllers;//activeWorkers;
     // int threadNum = atoi(argv[3]);
 
     // pthread_t workerThreads[threadNum]; //Concurrency basically
@@ -63,17 +74,14 @@ int main(int argc, char** argv) {
 
     pthread_t controllerThreads[bufSize];
     // char* buffer[bufSize]; 
+    request_buffer.buffer = malloc(bufSize*sizeof(job));
 
-    shared_buffer_t request_buffer = {
-        .buffer = malloc(bufSize),
-        .in = 0,
-        .out = 0,
-        .count = 0,
-        .mutex = PTHREAD_MUTEX_INITIALIZER,
-        .not_full = PTHREAD_COND_INITIALIZER,
-        .not_empty = PTHREAD_COND_INITIALIZER
-    };
-// 
+
+    // job* job10 = malloc(sizeof(job)); //will add to a test file later
+    // job10->id = 10;
+    // job10->socketFd = 10;
+    // job10->job = malloc(10);
+    // strcpy(job10->job,"band4bandz\0");
     // job* job1 = malloc(sizeof(job)); //will add to a test file later
     // job1->id = 1;
     // job1->socketFd = 1;
@@ -89,17 +97,16 @@ int main(int argc, char** argv) {
     // job3->socketFd = 3;
     // job3->job = malloc(10);
     // strcpy(job3->job,"abcdefghij\0");
+    // bufferAdd(&request_buffer,job10,bufSize);
     // bufferAdd(&request_buffer,job1,bufSize);
     // bufferAdd(&request_buffer,job2,bufSize);
     // bufferAdd(&request_buffer,job3,bufSize);
-    // bufferPrint(&request_buffer);
+    // bufferPrint(&request_buffer,bufSize);
+    // job* test = bufferRemoveOnFind(&request_buffer,job10,bufSize);
+    // printf("Job that got removed : < %d, %d, %s >\n",test->id,test->socketFd,test->job);
     // job* jobR1 = bufferRemove(&request_buffer,bufSize);
     // printf("Job that got removed : < %d, %d, %s >\n",jobR1->id,jobR1->socketFd,jobR1->job);
-    // for(int i = 1; i <= request_buffer.count; i++) { //temp
-    //     job* job = request_buffer.buffer[i];
-    //     printf("< %d, %d, %s >\n",job->id,job->socketFd,job->job);
-
-    // }
+    // bufferPrint(&request_buffer,bufSize);
 
     struct sockaddr_in serverAddr,clientAddr;
     socklen_t clientLen;

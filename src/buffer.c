@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <pthread.h>
 #include "../include/buffer.h"
@@ -15,28 +16,57 @@ void bufferAdd(shared_buffer_t * buf, job* job,int size) {
     pthread_mutex_unlock(&buf->mutex); 
 
 }
-
+//A worker thread should check if it read something not null
 job* bufferRemove(shared_buffer_t* buf,int size) {
     pthread_mutex_lock(&buf->mutex);
     while(buf->count == 0) {
         pthread_cond_wait(&buf->not_empty,&buf->mutex);
     }
     job* job = buf->buffer[buf->out];
-    buf->out = (buf->out + 1) % size;
+    int i = 0;
+    while(!job && i < size) { //Should also check if buffer got emptied with job stop
+        buf->out = (buf->out + 1) % size;
+        job = buf->buffer[buf->out];
+        i++;
+    }
+    if(!job) return NULL;
     buf->count--;
+    buf->buffer[buf->out] = NULL;
     pthread_cond_signal(&buf->not_full);
     pthread_mutex_unlock(&buf->mutex);
-    printf("double pump with the fanum tax\n");
-    buf->buffer[buf->out-1] = NULL;
     return job;
 
 }
 
-void bufferPrint(shared_buffer_t* buf) { //Doesn't work as intended.  Need to initialize buffer
-    for(int i = 0; i < buf->count; i++) {
-        job* job = buf->buffer[i];
-        printf("< %d, %d, %s >\n",job->id,job->socketFd,job->job);
+job* bufferRemoveOnFind(shared_buffer_t* buf,job* toFind,int size) {
+    job* job;
+    if(!toFind) return NULL;
+    pthread_mutex_lock(&buf->mutex);
+    for(int i = 0; i < size; i++) {
+        job = buf->buffer[i];
+        if(!job) continue;
+        if(job->id == toFind->id) {
+            buf->buffer[i] = NULL;
+            buf->count--;
+            pthread_mutex_unlock(&buf->mutex);
+            return job;            
+        }
 
     }
+    pthread_mutex_unlock(&buf->mutex);
+    return NULL;
+
+}
+
+void bufferPrint(shared_buffer_t* buf,int size) { 
+    int printed = 0;
+    for(int i = 0; i < size; i++) {
+        job* job = buf->buffer[i];
+        if(!job) continue;
+        printf("< %d, %d, %s >\n",job->id,job->socketFd,job->job);
+        printed++;
+
+    }
+    if(!printed) printf("No jobs to print.\n");
 }
 

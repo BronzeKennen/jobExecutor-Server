@@ -8,6 +8,10 @@
 #include "../include/buffer.h"
 
 int id = 0;
+int concurrency = 1;
+
+extern shared_buffer_t request_buffer;
+extern int bufSize;
 
 void* controller(void* arg) {
     int newSockFd = *(int*)arg;
@@ -69,7 +73,8 @@ void* controller(void* arg) {
             jobTriplet->id = id++;
             jobTriplet->socketFd = newSockFd;
             jobTriplet->job = malloc(strlen(newBuf));
-            strcpy(jobTriplet->job,newBuf);
+            strcpy(jobTriplet->job,newBuf+9);
+            bufferAdd(&request_buffer,jobTriplet,bufSize);
             printf("Created job : <%d,%d,%s>\n",jobTriplet->socketFd,jobTriplet->id,jobTriplet->job);
             //Logic to add to buffer
             memset(buffer,0,size+1);
@@ -86,18 +91,35 @@ void* controller(void* arg) {
             write(newSockFd,buffer,strlen(resp));
 
         } else if(strncmp(buffer,"stop",4) == 0) {
+            int id = atoi(buffer+9);
+            char temp[10];
+            memset(temp,0,10);
+            strcpy(temp,buffer+9);
+            int size = strlen(temp);
+            job jobId = {0,id,NULL};
+            job* another = bufferRemoveOnFind(&request_buffer,&jobId,bufSize);
+
+            char temp2[strlen("JOB  NOT FOUND")+size];
+            memset(temp2,0,sizeof(temp2));
+            if(another) 
+                sprintf(temp2,"JOB %d STOPPED\n",id);
+            else
+                sprintf(temp2,"JOB %d NOT FOUND\n",id);
+
+            write(newSockFd,temp2,strlen(temp2));
+
 
         } else if(strncmp(buffer,"poll",4) == 0) {
+            bufferPrint(&request_buffer,bufSize);
 
         } else if(strncmp(buffer,"setConcurrency",14) == 0) {
+            int con = atoi(buffer+15);
+            concurrency = con;
 
         } else if(strncmp(buffer,"exit",4) == 0) {
 
         }
         printf("Client : %s\n",buffer); //Garbage values if issueJob is used
-        memset(buffer,0,256);
-        strcpy(buffer,"ACK\n");
-        write(newSockFd,buffer,3);
     }
     return NULL;
 }
