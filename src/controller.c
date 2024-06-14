@@ -15,6 +15,7 @@ extern int bufSize;
 
 void* controller(void* arg) {
     int newSockFd = *(int*)arg;
+    free(arg);
 
     printf("client connected\n");
     //Initial buffer, if issueJob is given, another buffer is created with dynamic size
@@ -36,7 +37,7 @@ void* controller(void* arg) {
         } else if (n == 0) {
             printf("Client disconnected\n");
             close(newSockFd);
-            exit(0);
+            return NULL;
         }
         if(strncmp(buffer,"issueJob",8) == 0) { //Command issueJob
             memset(buffer,0,256);
@@ -111,15 +112,26 @@ void* controller(void* arg) {
 
         } else if(strncmp(buffer,"poll",4) == 0) {
             bufferPrint(&request_buffer,bufSize);
+            memset(buffer,0,256);
+            strcpy(buffer,"No jobs to print\n\0");
+            write(newSockFd,buffer,strlen(buffer));
 
         } else if(strncmp(buffer,"setConcurrency",14) == 0) {
             int con = atoi(buffer+15);
             concurrency = con;
 
         } else if(strncmp(buffer,"exit",4) == 0) {
+            //Implement logic to reply with "Server terminated before execution"
+            //Need to check when other processes finished.
+            //Need to send message to queued items that server terminated.
+            printf("Server is terminated.\n");
+            memset(buffer,0,256);
+            strcpy(buffer,"Server will terminate when running jobs finish...\n");
+            write(newSockFd,buffer,strlen(buffer));
 
         }
         printf("Client : %s\n",buffer); //Garbage values if issueJob is used
     }
+    close(newSockFd);
     return NULL;
 }

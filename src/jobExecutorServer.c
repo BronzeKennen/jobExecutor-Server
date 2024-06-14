@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     if(argc < 4) {
         fprintf(stderr,"Usage: ./jobExecutorServer [portNum] [bufferSize] [threadPoolSize]\n");
     }
-    int sockFd,newSockFd,portNum,activeControllers;//activeWorkers;
+    int sockFd,portNum,activeControllers;//activeWorkers;
     // int threadNum = atoi(argv[3]);
 
     // pthread_t workerThreads[threadNum]; //Concurrency basically
@@ -136,8 +136,9 @@ int main(int argc, char** argv) {
     clientLen = sizeof(clientAddr);
 
     while(1) {
-        newSockFd = accept(sockFd,(struct sockaddr*) &clientAddr, &clientLen); //if no client connects program hangs until someone connects
-        if(newSockFd < 0) {
+        int *newSockFd = malloc(sizeof(int));
+        *newSockFd = accept(sockFd,(struct sockaddr*) &clientAddr, &clientLen); //if no client connects program hangs until someone connects
+        if(*newSockFd < 0) {
             error("Error on accept function");
             exit(1);
         } 
@@ -146,12 +147,15 @@ int main(int argc, char** argv) {
             &controllerThreads[activeControllers],
             NULL,
             controller,
-            (void*)&newSockFd
+            (void*)newSockFd
         ) != 0) {
+            free(newSockFd);
             error("Could not create controller thread");
         } 
+
+        pthread_detach(controllerThreads[activeControllers]);
+        activeControllers = (activeControllers + 1) % 100;
     }
-    close(newSockFd);
     close(sockFd);
     free(request_buffer.buffer);
     return 0;
