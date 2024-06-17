@@ -38,7 +38,7 @@ Worker thread:
 
 Synchronization:
 */
-extern int concurrency;
+// extern int conLevel;
 
 void error(const char *msg) {
     perror(msg);
@@ -55,6 +55,8 @@ shared_buffer_t request_buffer = {
         .not_empty = PTHREAD_COND_INITIALIZER
     };
 
+pthread_mutex_t con_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t concurrency = PTHREAD_COND_INITIALIZER;
 int bufSize;
 
 int main(int argc, char** argv) { 
@@ -110,7 +112,6 @@ int main(int argc, char** argv) {
 
     struct sockaddr_in serverAddr,clientAddr;
     socklen_t clientLen;
-    // pthread_t *thread;
 
 
     sockFd = socket(AF_INET,SOCK_STREAM,0);
@@ -120,7 +121,7 @@ int main(int argc, char** argv) {
 
     portNum = atoi(argv[1]);
 
-    memset((char*) &serverAddr,0,sizeof(serverAddr)); //Cleans up buffer or something
+    memset((char*) &serverAddr,0,sizeof(serverAddr)); 
     serverAddr.sin_family = AF_INET; 
     serverAddr.sin_addr.s_addr = INADDR_ANY;
     serverAddr.sin_port = htons(portNum);
@@ -141,7 +142,7 @@ int main(int argc, char** argv) {
     }
 
     while(1) {
-        int *newSockFd = malloc(sizeof(int));
+        int *newSockFd = malloc(sizeof(int)); //if successfull it's freed by controller
         *newSockFd = accept(sockFd,(struct sockaddr*) &clientAddr, &clientLen); //if no client connects program hangs until someone connects
         if(*newSockFd < 0) {
             error("Error on accept function");

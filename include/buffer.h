@@ -4,7 +4,7 @@ typedef struct {
     char *job;
 } job;
 
-typedef struct { //Warning, trying to assign elements that do not exist causes SIGSEGV
+typedef struct { 
     job** buffer;
     size_t in;  // Next write position
     size_t out; // Next read position

@@ -117,8 +117,13 @@ int main(int argc, char** argv) {
     memset(buffer,0,cmdSize+1);
     memcpy(buffer,command,cmdSize+1); 
 
-    int n = write(sockFd,buffer,cmdSize); //Send command
     printf("Sending: %s\n",buffer);
+    int n = write(sockFd,buffer,cmdSize); //Send command
+    if(!handshake) {
+        if (shutdown(sockFd, SHUT_WR) == -1) {
+            perror("shutdown failed");
+        }
+    }
     if(n < 0) {
         error("Error on write");
     }
@@ -135,7 +140,6 @@ int main(int argc, char** argv) {
         char sizeBuf[10];
         sprintf(sizeBuf,"%d",cmdSize);
         memcpy(buffer,sizeBuf,cmdSize);
-        printf("Sending: %s\n",sizeBuf);
         n = write(sockFd,buffer,cmdSize);
         if(n < 0) {
             error("Error on write");
@@ -145,13 +149,11 @@ int main(int argc, char** argv) {
         if(n < 0 ) {
             error("error on reading");
         }
-        printf("Response : %s\n",buffer);
         int comp = atoi(buffer);
 
         if(comp == cmdSize) { //We are good to go
             memset(buffer,0,cmdSize);
             memcpy(buffer,command,cmdSize);
-            printf("Sending: %s\n",command);
             n = write(sockFd,buffer,cmdSize);
             char resp[
                         strlen("job")
@@ -165,8 +167,20 @@ int main(int argc, char** argv) {
             if(n < 0 ) {
                 error("error on reading");
             }
-            printf("Response : %s \n",resp);
+            printf("Response :\n %s \n",resp);
         }
+        //Read output of execution
+        printf("=====READING EXECUTION OUTPUT=====\n");
+        char execBuf[1024];
+        memset(execBuf,0,sizeof(respBuf));
+        //read command in chunks of 1024
+        while((n=read(sockFd,execBuf,sizeof(execBuf))) > 0) {
+            execBuf[n] = '\0';
+            printf("%s",execBuf);
+
+        }
+        shutdown(sockFd,SHUT_RDWR);
+
     }
     close(sockFd);
     return 0;

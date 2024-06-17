@@ -4,13 +4,25 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
+#include <pthread.h>
 #include "../include/controller.h"
 #include "../include/buffer.h"
 
-int concurrency = 1;
+int conLevel = 1;
 
 extern shared_buffer_t request_buffer;
 extern int bufSize;
+extern pthread_mutex_t con_mutex;
+extern pthread_cond_t concurrency;
+
+void adjustConcurrency(int newCon) {
+    pthread_mutex_lock(&con_mutex);
+    conLevel = newCon;
+
+    pthread_cond_broadcast(&concurrency);
+
+    pthread_mutex_unlock(&con_mutex);
+}
 
 void* controller(void* arg) {
     int newSockFd = *(int*)arg;
@@ -42,7 +54,6 @@ void* controller(void* arg) {
             memset(buffer,0,256);
             strcpy(buffer,"ACK\n"); //Send confirmation that command was received
             write(newSockFd,buffer,3);
-            printf("ACK\n");
             memset(buffer,0,256);
             n = read(newSockFd,buffer,256); //read size
             if(n < 0) {
@@ -50,7 +61,6 @@ void* controller(void* arg) {
                 exit(1);
             }
             int size = atoi(buffer);
-            printf("Size received: %d\n",size);
             char newBuf[size+1]; //Create buffer of needed size
             memset(newBuf,0,size);
 
@@ -68,13 +78,11 @@ void* controller(void* arg) {
                 perror("Error on read");
                 exit(1);
             }
-            printf("Client : %s\n",newBuf);
             job *jobTriplet = malloc(sizeof(job));
             jobTriplet->socketFd = newSockFd;
             jobTriplet->job = malloc(strlen(newBuf));
             strcpy(jobTriplet->job,newBuf+9);
             bufferAdd(&request_buffer,jobTriplet,bufSize);
-            printf("Created job : <%d,%d,%s>\n",jobTriplet->socketFd,jobTriplet->id,jobTriplet->job);
             //Logic to add to buffer
             memset(buffer,0,size+1);
             char resp[
@@ -106,6 +114,9 @@ void* controller(void* arg) {
                 sprintf(temp2,"JOB %d NOT FOUND\n",id);
 
             write(newSockFd,temp2,strlen(temp2));
+            if (shutdown(newSockFd, SHUT_WR) == -1) {
+                perror("shutdown failed");
+            }
 
 
         } else if(strncmp(buffer,"poll",4) == 0) {
@@ -113,10 +124,13 @@ void* controller(void* arg) {
             memset(buffer,0,256);
             strcpy(buffer,"No jobs to print\n\0");
             write(newSockFd,buffer,strlen(buffer));
+            if (shutdown(newSockFd, SHUT_WR) == -1) {
+                perror("shutdown failed");
+            }
 
         } else if(strncmp(buffer,"setConcurrency",14) == 0) {
             int con = atoi(buffer+15);
-            concurrency = con;
+            adjustConcurrency(con);
 
         } else if(strncmp(buffer,"exit",4) == 0) {
             //Implement logic to reply with "Server terminated before execution"
@@ -130,6 +144,5 @@ void* controller(void* arg) {
         }
         printf("Client : %s\n",buffer); //Garbage values if issueJob is used
     }
-    close(newSockFd);
     return NULL;
 }
