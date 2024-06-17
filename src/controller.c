@@ -7,7 +7,6 @@
 #include "../include/controller.h"
 #include "../include/buffer.h"
 
-int id = 0;
 int concurrency = 1;
 
 extern shared_buffer_t request_buffer;
@@ -71,7 +70,6 @@ void* controller(void* arg) {
             }
             printf("Client : %s\n",newBuf);
             job *jobTriplet = malloc(sizeof(job));
-            jobTriplet->id = id++;
             jobTriplet->socketFd = newSockFd;
             jobTriplet->job = malloc(strlen(newBuf));
             strcpy(jobTriplet->job,newBuf+9);

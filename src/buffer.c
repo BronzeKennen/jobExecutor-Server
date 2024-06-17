@@ -4,8 +4,11 @@
 #include <pthread.h>
 #include "../include/buffer.h"
 
+int id = 0;
+
 void bufferAdd(shared_buffer_t * buf, job* job,int size) {
     pthread_mutex_lock(&buf->mutex);
+    job->id = id++;
     while(buf->count == size) {
         pthread_cond_wait(&buf->not_full,&buf->mutex);
     }

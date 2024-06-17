@@ -39,6 +39,10 @@ int main(int argc, char** argv) {
             exit(1);
         }
         int con = atoi(argv[4]);
+        if(con < 1) {
+            printf("Invalid concurrency\n");
+            exit(1);
+        }
         char buf[cmdSize];
         snprintf(buf,cmdSize,"setConcurrency %d",con);
         strncpy(command,buf,cmdSize);

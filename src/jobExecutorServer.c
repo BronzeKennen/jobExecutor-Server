@@ -62,9 +62,8 @@ int main(int argc, char** argv) {
         fprintf(stderr,"Usage: ./jobExecutorServer [portNum] [bufferSize] [threadPoolSize]\n");
     }
     int sockFd,portNum,activeControllers;//activeWorkers;
-    // int threadNum = atoi(argv[3]);
+    int threadNum = atoi(argv[3]);
 
-    // pthread_t workerThreads[threadNum]; //Concurrency basically
     // int workerThreadIds[threadNum];
 
     activeControllers = 0;
@@ -73,6 +72,7 @@ int main(int argc, char** argv) {
     bufSize = atoi(argv[2]);
 
     pthread_t controllerThreads[bufSize];
+    pthread_t workerThreads[threadNum]; //Concurrency basically
     // char* buffer[bufSize]; 
     request_buffer.buffer = malloc(bufSize*sizeof(job));
 
@@ -134,6 +134,11 @@ int main(int argc, char** argv) {
         error("error on listen");
     }
     clientLen = sizeof(clientAddr);
+    for (int i = 0; i < threadNum; i++) {
+        if (pthread_create(&workerThreads[i], NULL, worker, NULL) != 0) {
+            error("Could not create worker thread");
+        }
+    }
 
     while(1) {
         int *newSockFd = malloc(sizeof(int));
@@ -154,7 +159,11 @@ int main(int argc, char** argv) {
         } 
 
         pthread_detach(controllerThreads[activeControllers]);
-        activeControllers = (activeControllers + 1) % 100;
+        //Controller threads should not be more than buffer size, please fix!
+        activeControllers = (activeControllers + 1) % bufSize; 
+    }
+    for (int i = 0; i < threadNum; i++) {
+        pthread_join(workerThreads[i], NULL);
     }
     close(sockFd);
     free(request_buffer.buffer);
