@@ -170,14 +170,14 @@ int main(int argc, char** argv) {
             printf("Response :\n %s \n",resp);
         }
         //Read output of execution
-        printf("=====READING EXECUTION OUTPUT=====\n");
         char execBuf[1024];
         memset(execBuf,0,sizeof(respBuf));
         //read command in chunks of 1024
         while((n=read(sockFd,execBuf,sizeof(execBuf))) > 0) {
             execBuf[n] = '\0';
+            printf("\n=====READING EXECUTION OUTPUT=====\n");
             printf("%s",execBuf);
-
+            printf("\n====END OF EXECUTION OUTPUT=====\n");
         }
         shutdown(sockFd,SHUT_RDWR);
 

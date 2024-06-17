@@ -51,6 +51,7 @@ job* bufferRemoveOnFind(shared_buffer_t* buf,job* toFind,int size) {
         if(job->id == toFind->id) {
             buf->buffer[i] = NULL;
             buf->count--;
+            pthread_cond_signal(&buf->not_full);
             pthread_mutex_unlock(&buf->mutex);
             return job;            
         }

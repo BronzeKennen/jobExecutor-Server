@@ -60,11 +60,12 @@ void* worker(void * arg) {
             pthread_cond_wait(&concurrency,&con_mutex);
         }
 
-        activeWorkers++;
+        job* toExec = bufferRemove(&request_buffer,bufSize);
 
+        activeWorkers++;
+        // printf("ACTIVE : %d | CONLEVEL: %d\n",activeWorkers,conLevel);
         pthread_mutex_unlock(&con_mutex);
 
-        job* toExec = bufferRemove(&request_buffer,bufSize);
 
         pid_t pid = fork();
 
@@ -108,12 +109,13 @@ void* worker(void * arg) {
     
             char** arguments = splitJob(toExec->job);
             execvp(arguments[0],arguments);
-            int i = 0;
-            while(arguments[i]) {
-                free(arguments[i]);
-                i++;
-            }
-            free(arguments);
+            printf("EXECVP FAILED");
+            // int i = 0;
+            // while(arguments[i]) {
+                // free(arguments[i]);
+                // i++;
+            // }
+            // free(arguments);
     
         } else {
     
