@@ -88,7 +88,7 @@ void* worker(void * arg) {
             printf("Error opening file.\n");
             return NULL;
         }
-
+        close(file);
 
     }
     return NULL;
