@@ -8,7 +8,7 @@
 #include "../include/controller.h"
 #include "../include/buffer.h"
 
-int conLevel = 1;
+int conLevel = 4;
 
 extern shared_buffer_t request_buffer;
 extern int bufSize;
@@ -24,10 +24,12 @@ void adjustConcurrency(int newCon) {
     pthread_mutex_unlock(&con_mutex);
 }
 
+pthread_mutex_t controllerMutex = PTHREAD_MUTEX_INITIALIZER;
+
 void* controller(void* arg) {
     int newSockFd = *(int*)arg;
     free(arg);
-
+    pthread_mutex_lock(&controllerMutex);
     printf("client connected\n");
     //Initial buffer, if issueJob is given, another buffer is created with dynamic size
     char buffer[256]; 
@@ -143,6 +145,7 @@ void* controller(void* arg) {
 
         }
         printf("Client : %s\n",buffer); //Garbage values if issueJob is used
+        pthread_mutex_unlock(&controllerMutex);
     }
     return NULL;
 }
