@@ -134,6 +134,7 @@ int main(int argc, char** argv) {
         activeControllers = (activeControllers + 1) % bufSize; 
     }
     for (int i = 0; i < threadNum; i++) {
+        pthread_cond_broadcast(&request_buffer.not_empty);
         pthread_join(workerThreads[i], NULL);
     }
 

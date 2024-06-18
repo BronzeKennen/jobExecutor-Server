@@ -44,6 +44,10 @@ job* bufferRemove(shared_buffer_t* buf,int size) {
     }
     while(buf->count == 0) {
         pthread_cond_wait(&buf->not_empty,&buf->mutex);
+        if(exitFlag == 1) {
+            pthread_mutex_unlock(&buf->mutex);
+            return NULL;
+        }
     }
     job* job = buf->buffer[buf->out];
     int i = 0;

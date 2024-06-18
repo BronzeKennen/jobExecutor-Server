@@ -170,16 +170,18 @@ int main(int argc, char** argv) {
             printf("Response :\n %s \n",resp);
         }
         //Read output of execution
-        char execBuf[1024];
-        memset(execBuf,0,sizeof(respBuf));
-        //read command in chunks of 1024
-        printf("\n-----jobID output start------\n");
-        while((n=read(sockFd,execBuf,sizeof(execBuf))) > 0) {
-            execBuf[n] = '\0';
-            printf("%s",execBuf);
+        if(handshake) {
+            char execBuf[1024];
+            memset(execBuf,0,sizeof(respBuf));
+            //read command in chunks of 1024
+            printf("\n-----jobID output start------\n");
+            while((n=read(sockFd,execBuf,sizeof(execBuf))) > 0) {
+                execBuf[n] = '\0';
+                printf("%s",execBuf);
+            }
+            printf("\n-----jobID output stop------\n");
+            shutdown(sockFd,SHUT_RDWR);
         }
-        printf("\n-----jobID output stop------\n");
-        shutdown(sockFd,SHUT_RDWR);
 
     }
     close(sockFd);
