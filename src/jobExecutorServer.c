@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <sys/wait.h>
 #include <pthread.h>
+#include <signal.h>
 #include "../include/controller.h"
 #include "../include/worker.h"
 #include "../include/buffer.h"
@@ -38,7 +39,6 @@ Worker thread:
 
 Synchronization:
 */
-// extern int conLevel;
 
 void error(const char *msg) {
     perror(msg);
@@ -58,12 +58,14 @@ shared_buffer_t request_buffer = {
 pthread_mutex_t con_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t concurrency = PTHREAD_COND_INITIALIZER;
 int bufSize;
+int sockFd;
+extern int exitFlag;
 
 int main(int argc, char** argv) { 
     if(argc < 4) {
         fprintf(stderr,"Usage: ./jobExecutorServer [portNum] [bufferSize] [threadPoolSize]\n");
     }
-    int sockFd,portNum,activeControllers;//activeWorkers;
+    int portNum,activeControllers;//activeWorkers;
     int threadNum = atoi(argv[3]);
 
     // int workerThreadIds[threadNum];
@@ -78,37 +80,6 @@ int main(int argc, char** argv) {
     // char* buffer[bufSize]; 
     request_buffer.buffer = malloc(bufSize*sizeof(job));
 
-
-    // job* job10 = malloc(sizeof(job)); //will add to a test file later
-    // job10->id = 10;
-    // job10->socketFd = 10;
-    // job10->job = malloc(10);
-    // strcpy(job10->job,"band4bandz\0");
-    // job* job1 = malloc(sizeof(job)); //will add to a test file later
-    // job1->id = 1;
-    // job1->socketFd = 1;
-    // job1->job = malloc(10);
-    // strcpy(job1->job,"123456789\0");
-    // job* job2 = malloc(sizeof(job));
-    // job2->id = 2;
-    // job2->socketFd = 2;
-    // job2->job = malloc(10);
-    // strcpy(job2->job,"987654321\0");
-    // job* job3 = malloc(sizeof(job));
-    // job3->id = 3;
-    // job3->socketFd = 3;
-    // job3->job = malloc(10);
-    // strcpy(job3->job,"abcdefghij\0");
-    // bufferAdd(&request_buffer,job10,bufSize);
-    // bufferAdd(&request_buffer,job1,bufSize);
-    // bufferAdd(&request_buffer,job2,bufSize);
-    // bufferAdd(&request_buffer,job3,bufSize);
-    // bufferPrint(&request_buffer,bufSize);
-    // job* test = bufferRemoveOnFind(&request_buffer,job10,bufSize);
-    // printf("Job that got removed : < %d, %d, %s >\n",test->id,test->socketFd,test->job);
-    // job* jobR1 = bufferRemove(&request_buffer,bufSize);
-    // printf("Job that got removed : < %d, %d, %s >\n",jobR1->id,jobR1->socketFd,jobR1->job);
-    // bufferPrint(&request_buffer,bufSize);
 
     struct sockaddr_in serverAddr,clientAddr;
     socklen_t clientLen;
@@ -145,8 +116,8 @@ int main(int argc, char** argv) {
         int *newSockFd = malloc(sizeof(int)); //if successfull it's freed by controller
         *newSockFd = accept(sockFd,(struct sockaddr*) &clientAddr, &clientLen); //if no client connects program hangs until someone connects
         if(*newSockFd < 0) {
-            error("Error on accept function");
-            exit(1);
+            printf("An error occured, or exit command was given.\n");
+            break;
         } 
         
         if(pthread_create( //Create a controller thread
@@ -160,12 +131,20 @@ int main(int argc, char** argv) {
         } 
 
         pthread_detach(controllerThreads[activeControllers]);
-        //Controller threads should not be more than buffer size, please fix!
         activeControllers = (activeControllers + 1) % bufSize; 
     }
     for (int i = 0; i < threadNum; i++) {
         pthread_join(workerThreads[i], NULL);
     }
+
+    exitFlag = 2;
+    for(int i = 0; i < bufSize; i++) {
+        char* termMsg = "SERVER TERMINATED BEFORE EXECUTION";
+        job* toTerminate = bufferRemove(&request_buffer,bufSize);
+        if(!toTerminate) continue;
+        write(toTerminate->socketFd,termMsg,strlen(termMsg));
+    }
+    printf("Server is closing.\n");
     close(sockFd);
     free(request_buffer.buffer);
     return 0;

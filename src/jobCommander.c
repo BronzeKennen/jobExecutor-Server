@@ -173,12 +173,12 @@ int main(int argc, char** argv) {
         char execBuf[1024];
         memset(execBuf,0,sizeof(respBuf));
         //read command in chunks of 1024
+        printf("\n-----jobID output start------\n");
         while((n=read(sockFd,execBuf,sizeof(execBuf))) > 0) {
             execBuf[n] = '\0';
-            printf("\n=====READING EXECUTION OUTPUT=====\n");
             printf("%s",execBuf);
-            printf("\n====END OF EXECUTION OUTPUT=====\n");
         }
+        printf("\n-----jobID output stop------\n");
         shutdown(sockFd,SHUT_RDWR);
 
     }

@@ -8,10 +8,11 @@
 #include "../include/controller.h"
 #include "../include/buffer.h"
 
-int conLevel = 4;
+int conLevel = 1;
 
-extern shared_buffer_t request_buffer;
 extern int bufSize;
+extern int sockFd;
+extern shared_buffer_t request_buffer;
 extern pthread_mutex_t con_mutex;
 extern pthread_cond_t concurrency;
 
@@ -23,7 +24,7 @@ void adjustConcurrency(int newCon) {
 
     pthread_mutex_unlock(&con_mutex);
 }
-
+int exitFlag = 0;
 pthread_mutex_t controllerMutex = PTHREAD_MUTEX_INITIALIZER;
 
 void* controller(void* arg) {
@@ -122,13 +123,12 @@ void* controller(void* arg) {
 
 
         } else if(strncmp(buffer,"poll",4) == 0) {
-            bufferPrint(&request_buffer,bufSize);
-            memset(buffer,0,256);
-            strcpy(buffer,"No jobs to print\n\0");
-            write(newSockFd,buffer,strlen(buffer));
+            char* printed = bufferPrint(&request_buffer,bufSize);
+            write(newSockFd,printed,strlen(printed));
             if (shutdown(newSockFd, SHUT_WR) == -1) {
                 perror("shutdown failed");
             }
+            free(printed);
 
         } else if(strncmp(buffer,"setConcurrency",14) == 0) {
             int con = atoi(buffer+15);
@@ -138,13 +138,14 @@ void* controller(void* arg) {
             //Implement logic to reply with "Server terminated before execution"
             //Need to check when other processes finished.
             //Need to send message to queued items that server terminated.
-            printf("Server is terminated.\n");
             memset(buffer,0,256);
             strcpy(buffer,"Server will terminate when running jobs finish...\n");
             write(newSockFd,buffer,strlen(buffer));
+            exitFlag = 1;
+            shutdown(sockFd,SHUT_RDWR);
+            shutdown(newSockFd,SHUT_RD);
 
         }
-        printf("Client : %s\n",buffer); //Garbage values if issueJob is used
         pthread_mutex_unlock(&controllerMutex);
     }
     return NULL;

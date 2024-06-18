@@ -16,6 +16,7 @@ extern shared_buffer_t request_buffer;
 extern pthread_cond_t concurrency;
 extern int conLevel;
 extern int bufSize;
+extern int exitFlag;
 extern pthread_mutex_t con_mutex;
 int activeWorkers = 0;
 //Worker threads should be made by main function according to argv[3] at start
@@ -59,12 +60,19 @@ void* worker(void * arg) {
         while(activeWorkers >= conLevel) {
             pthread_cond_wait(&concurrency,&con_mutex);
         }
+        
+        activeWorkers++;
+        pthread_mutex_unlock(&con_mutex);
 
         job* toExec = bufferRemove(&request_buffer,bufSize);
+        if(!toExec)  {
+            pthread_mutex_lock(&con_mutex);
+            activeWorkers--;
+            pthread_cond_broadcast(&concurrency);
+            pthread_mutex_unlock(&con_mutex);
+            break;
+        }
 
-        activeWorkers++;
-        // printf("ACTIVE : %d | CONLEVEL: %d\n",activeWorkers,conLevel);
-        pthread_mutex_unlock(&con_mutex);
 
 
         pid_t pid = fork();
@@ -110,12 +118,6 @@ void* worker(void * arg) {
             char** arguments = splitJob(toExec->job);
             execvp(arguments[0],arguments);
             printf("EXECVP FAILED");
-            // int i = 0;
-            // while(arguments[i]) {
-                // free(arguments[i]);
-                // i++;
-            // }
-            // free(arguments);
     
         } else {
     
